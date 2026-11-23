@@ -66,7 +66,7 @@ svg{display:block;max-width:100%}
 <label>Altura (cm)<input id="h" type="number" inputmode="numeric"></label>
 <label>Peso actual (kg)<input id="w" type="number" step="0.1" inputmode="decimal"></label>
 <label>Peso objetivo (kg)<input id="goal" type="number" step="0.1" inputmode="decimal"></label>
-<label>% grasa (opcional)<input id="bf" type="number" step="0.1" inputmode="decimal" placeholder="Si lo sabes"></label>
+<label>% grasa (opcional)<input id="bf" type="number" step="0.1" inputmode="decimal" placeholder="Cálculo en Peso"></label>
 </div>
 <label style="margin-top:10px">Actividad<select id="act">
 <option value="1.2">Sedentaria: poco ejercicio</option>
@@ -112,6 +112,7 @@ const DEF={sex:'h',age:30,h:175,w:85,goal:78,act:'1.55',pace:'0.2',bf:'',meals:'
 let P=Object.assign({},DEF,ld('df-p',{})),LOG=ld('df-l',{}),WT=ld('df-w',[]),CK=ld('df-c',{});
 let AK=ld('df-k',''),GK=ld('df-g',''),AM=ld('df-m','gemini-3.5-flash-lite');
 if(/^gemini-2\.5/.test(AM))AM='gemini-3.5-flash-lite';
+let BFL=ld('df-bf',[]),BM=ld('df-bm',{});
 const td=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Math.round(n).toLocaleString('es-ES');
@@ -215,8 +216,21 @@ function analysis(W){
 function renderWeight(){
  const W=[...WT].sort((a,b)=>a.d<b.d?-1:1);
  $('#wb').innerHTML=`<div class="card"><h2>Registrar peso</h2><div class="grid"><label>Fecha<input id="wd" type="date" value="${td()}"></label><label>Peso (kg)<input id="wv" type="number" step="0.1" inputmode="decimal"></label></div><button class="btn" id="wadd">Guardar peso</button></div>
+<div id="bfc"></div>
 ${W.length>1?chart(W):''}${analysis(W)}
 ${W.length?`<div class="card"><h2>Historial</h2><ul>${W.slice().reverse().slice(0,12).map(x=>`<li class="it"><span>${x.d.split('-').reverse().join('/')} · <b>${d1(x.v)} kg</b></span><button class="x" data-d="${x.d}" aria-label="Eliminar registro">×</button></li>`).join('')}</ul></div>`:''}`;
+ renderBf();
+}
+
+function navy(sx,h,n,w,hp){const L=Math.log10;if(sx==='h')return w>n?495/(1.0324-.19077*L(w-n)+.15456*L(h))-450:null;return w+hp>n?495/(1.29579-.35004*L(w+hp-n)+.221*L(h))-450:null}
+const bfCat=(sx,v)=>{const T=sx==='h'?[[6,'Grasa esencial'],[14,'Atlético'],[18,'En forma'],[25,'Media']]:[[14,'Grasa esencial'],[21,'Atlético'],[25,'En forma'],[32,'Media']];for(const t of T)if(v<t[0])return t[1];return 'Alta'};
+function renderBf(v,msg=''){
+ const el=$('#bfc');if(!el)return;
+ const mj=P.sex==='m',H=BFL.slice().sort((a,b)=>a.d<b.d?-1:1).slice(-5).reverse();
+ let res='';
+ if(v){const W2=[...WT].sort((a,b)=>a.d<b.d?-1:1),wt=W2.length?W2[W2.length-1].v:+P.w,fat=wt*v/100;
+  res=`<div class="big num" style="margin-top:14px">${d1(v)} %</div><div class="mute">${bfCat(P.sex,v)} · grasa ${d1(fat)} kg · masa magra ${d1(wt-fat)} kg</div><button class="btn" id="bfuse">Usar en mi plan</button>`}
+ el.innerHTML=`<div class="card"><h2>Porcentaje de grasa</h2><p class="mute" style="margin:0 0 10px">Método de la Marina de EE. UU. con una cinta métrica. Es una estimación con un margen de error de unos 3–4 puntos: úsala para ver tu evolución, no como cifra exacta.</p><div class="grid"><label>Cuello (cm)<input id="bn" type="number" step="0.1" inputmode="decimal" value="${BM.n||''}"></label><label>Cintura (cm)<input id="bw" type="number" step="0.1" inputmode="decimal" value="${BM.w||''}"></label>${mj?`<label>Cadera (cm)<input id="bh" type="number" step="0.1" inputmode="decimal" value="${BM.h||''}"></label>`:''}</div><p class="mute" style="margin:8px 0 0">Cuello: justo bajo la nuez. Cintura: ${mj?'en su punto más estrecho':'a la altura del ombligo'}, sin meter tripa.${mj?' Cadera: en su punto más ancho.':''} Mide dos veces y usa la media.</p><button class="btn" id="bfcalc">Calcular</button>${msg}${res}${H.length?`<ul style="margin-top:12px">${H.map(x=>`<li class="it"><span>${x.d.split('-').reverse().join('/')}</span><b>${d1(x.v)} %</b></li>`).join('')}</ul>`:''}</div>`;
 }
 
 /* eventos */
@@ -265,6 +279,21 @@ async function estimate(f){
 }
 $('#tb').addEventListener('click',e=>{if(e.target.id==='foto'){if(!(AM.startsWith('gemini')?GK:AK)){$('#fs').textContent='Primero pega tu clave de API en Ajustes de la foto, más abajo.';const d=$('#tb details');if(d)d.open=true;return}$('#ff').click()}});
 $('#tb').addEventListener('change',e=>{const t=e.target;if(t.id==='ff'&&t.files[0])estimate(t.files[0]);if(t.id==='gk'){GK=t.value.trim();sv('df-g',GK)}if(t.id==='ak'){AK=t.value.trim();sv('df-k',AK)}if(t.id==='am'){AM=t.value;sv('df-m',AM)}});
+$('#wb').addEventListener('click',e=>{
+ const id=e.target.id;
+ if(id==='bfcalc'){
+  const n=+$('#bn').value,w=+$('#bw').value,hp=$('#bh')?+$('#bh').value:0;
+  BM={n:n||'',w:w||'',h:hp||''};sv('df-bm',BM);
+  const v=(n>0&&w>0&&+P.h>0&&(P.sex==='h'||hp>0))?navy(P.sex,+P.h,n,w,hp):null;
+  if(v===null||!(v>=3&&v<=60)){renderBf(0,'<div class="card warn" style="margin:12px 0 0">Revisa las medidas: faltan datos o no son coherentes. Mídelas en centímetros y con la cinta pegada a la piel.</div>');return}
+  const r=Math.round(v*10)/10;
+  BFL=BFL.filter(x=>x.d!==td()).concat([{d:td(),v:r}]);sv('df-bf',BFL);renderBf(r);
+ }else if(id==='bfuse'){
+  const l=BFL.find(x=>x.d===td());if(!l)return;
+  P.bf=String(l.v);sv('df-p',P);$('#bf').value=P.bf;renderPlan();
+  renderBf(l.v,'<div class="mute" style="margin-top:10px">Guardado en tu plan: la proteína ahora se calcula sobre tu masa magra.</div>');
+ }
+});
 const TABS=['plan','hoy','peso','guia'];
 function go(n){
  if(!TABS.includes(n))n='plan';
