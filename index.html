@@ -82,6 +82,7 @@ svg{display:block;max-width:100%}
 </section>
 
 <section id="hoy"><div id="tb"></div></section>
+<section id="entreno"><div id="eb"></div></section>
 <section id="peso"><div id="wb"></div></section>
 
 <section id="guia">
@@ -93,6 +94,7 @@ svg{display:block;max-width:100%}
 <details><summary>Cuándo ajustar</summary><p>Si tras 2 semanas no hay cambio, baja unas 100–150 kcal o suma unos 2.000 pasos diarios. Si pierdes más del 1 % de tu peso por semana, sube calorías.</p></details>
 <details><summary>Descansos de dieta</summary><p>Tras 8–12 semanas, 1–2 semanas a calorías de mantenimiento ayudan a recuperar energía y adherencia.</p></details>
 <details><summary>Sueño, pasos y alcohol</summary><p>Dormir 7–9 horas regula el hambre. Caminar 8.000–10.000 pasos suma gasto sin fatigar. El alcohol aporta 7 kcal por gramo y se olvida al registrar.</p></details>
+<details><summary>Suplementos: qué sirve y qué no</summary><p>La creatina monohidrato, 3–5 g al día de forma constante, es de los suplementos con más evidencia para la fuerza y la masa muscular. Puede subirte 1–2 kg en la báscula por retención de agua, que no es grasa. La proteína en polvo es solo una forma cómoda de llegar a tu objetivo diario: no es imprescindible, y la mejor hora es cuando te falte proteína para cerrar el día. La creatina vale a cualquier hora, lo que cuenta es tomarla cada día. Ningún suplemento sustituye a comer bien, dormir y entrenar. Si tienes alguna enfermedad, sobre todo renal, o tomas medicación, consúltalo antes con tu médico.</p></details>
 <details><summary>Comida real y saciante</summary><p>Basa el plan en proteína magra, verduras, legumbres, fruta y cereales integrales. Deja un margen del 10–20 % para comidas flexibles: la constancia gana a la perfección.</p></details>
 </div>
 <div class="card warn"><b>Importante.</b> Los cálculos son estimaciones orientativas (fórmula Mifflin-St Jeor) y no sustituyen a un médico o dietista. Esta app es para adultos sanos. No la uses si estás embarazada o en lactancia, tienes diabetes u otra enfermedad, tomas medicación o has tenido un trastorno de la conducta alimentaria. Si la comida o el peso te generan ansiedad, pide ayuda profesional.</div>
@@ -100,7 +102,7 @@ svg{display:block;max-width:100%}
 </div>
 
 <nav>
-<button data-t="plan">Plan</button><button data-t="hoy">Hoy</button><button data-t="peso">Peso</button><button data-t="guia">Guía</button>
+<button data-t="plan">Plan</button><button data-t="hoy">Hoy</button><button data-t="entreno">Entreno</button><button data-t="peso">Peso</button><button data-t="guia">Guía</button>
 </nav>
 
 <script>
@@ -113,6 +115,8 @@ let P=Object.assign({},DEF,ld('df-p',{})),LOG=ld('df-l',{}),WT=ld('df-w',[]),CK=
 let AK=ld('df-k',''),GK=ld('df-g',''),AM=ld('df-m','gemini-3.5-flash-lite');
 if(/^gemini-2\.5/.test(AM))AM='gemini-3.5-flash-lite';
 let BFL=ld('df-bf',[]),BM=ld('df-bm',{});
+const SD=[{id:'prot',n:'Proteína en polvo',kcal:120,p:24,e:1},{id:'crea',n:'Creatina'},{id:'omega',n:'Omega-3'},{id:'vitd',n:'Vitamina D'},{id:'multi',n:'Multivitamínico'}];
+let SUP=ld('df-s',SD),SU=ld('df-su',{}),TR=ld('df-t',{});
 const td=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Math.round(n).toLocaleString('es-ES');
@@ -182,7 +186,9 @@ function renderToday(){
 <button class="btn" id="add">Añadir</button>
 ${it.length?`<ul style="margin-top:12px">${it.map((x,i)=>`<li class="it"><span>${esc(x.n)}<br><span class="mute">${fmt(x.k)} kcal · ${Math.round(x.p)} g proteína</span></span><button class="x" data-i="${i}" aria-label="Eliminar ${esc(x.n)}">×</button></li>`).join('')}</ul>`:''}</div>
 <div class="card"><h2>Hábitos de hoy</h2>${cks.map(c=>`<label class="chk"><input type="checkbox" data-c="${c[0]}" ${ck[c[0]]?'checked':''}>${c[1]}</label>`).join('')}</div>
-<details class="card" style="border-top:1px solid var(--line)"><summary>Ajustes de la foto</summary><label style="margin-top:10px">Modelo<select id="am">${[['gemini-3.5-flash-lite','Gemini 3.5 Flash-Lite: gratis (recomendado)'],['gemini-3.5-flash','Gemini 3.5 Flash: gratis, más preciso, menos cuota'],['claude-haiku-5-5','Claude Haiku 5.5: de pago'],['claude-sonnet-5-5','Claude Sonnet 5.5: de pago, más preciso']].map(o=>`<option value="${o[0]}" ${AM===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></label><label style="margin-top:8px">Clave de Gemini (gratis)<input id="gk" type="password" autocomplete="off" placeholder="AIza..." value="${esc(GK)}"></label><label style="margin-top:8px">Clave de Anthropic (de pago)<input id="ak" type="password" autocomplete="off" placeholder="sk-ant-..." value="${esc(AK)}"></label><p>Gemini: crea la clave gratis en aistudio.google.com, en Get API key. Anthropic: console.anthropic.com. Solo necesitas la clave del modelo que elijas. Las claves se guardan solo en este teléfono. La foto se envía a Google o a Anthropic para analizarla y hace falta internet.</p></details>`;
+${supHtml()}
+${closeHtml(t,pr)}
+<details id="fdet" class="card" style="border-top:1px solid var(--line)"><summary>Ajustes de la foto</summary><label style="margin-top:10px">Modelo<select id="am">${[['gemini-3.5-flash-lite','Gemini 3.5 Flash-Lite: gratis (recomendado)'],['gemini-3.5-flash','Gemini 3.5 Flash: gratis, más preciso, menos cuota'],['claude-haiku-5-5','Claude Haiku 5.5: de pago'],['claude-sonnet-5-5','Claude Sonnet 5.5: de pago, más preciso']].map(o=>`<option value="${o[0]}" ${AM===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select></label><label style="margin-top:8px">Clave de Gemini (gratis)<input id="gk" type="password" autocomplete="off" placeholder="AIza..." value="${esc(GK)}"></label><label style="margin-top:8px">Clave de Anthropic (de pago)<input id="ak" type="password" autocomplete="off" placeholder="sk-ant-..." value="${esc(AK)}"></label><p>Gemini: crea la clave gratis en aistudio.google.com, en Get API key. Anthropic: console.anthropic.com. Solo necesitas la clave del modelo que elijas. Las claves se guardan solo en este teléfono. La foto se envía a Google o a Anthropic para analizarla y hace falta internet.</p></details>`;
 }
 
 function chart(W){
@@ -232,6 +238,36 @@ function renderBf(v,msg=''){
   res=`<div class="big num" style="margin-top:14px">${d1(v)} %</div><div class="mute">${bfCat(P.sex,v)} · grasa ${d1(fat)} kg · masa magra ${d1(wt-fat)} kg</div><button class="btn" id="bfuse">Usar en mi plan</button>`}
  el.innerHTML=`<div class="card"><h2>Porcentaje de grasa</h2><p class="mute" style="margin:0 0 10px">Método de la Marina de EE. UU. con una cinta métrica. Es una estimación con un margen de error de unos 3–4 puntos: úsala para ver tu evolución, no como cifra exacta.</p><div class="grid"><label>Cuello (cm)<input id="bn" type="number" step="0.1" inputmode="decimal" value="${BM.n||''}"></label><label>Cintura (cm)<input id="bw" type="number" step="0.1" inputmode="decimal" value="${BM.w||''}"></label>${mj?`<label>Cadera (cm)<input id="bh" type="number" step="0.1" inputmode="decimal" value="${BM.h||''}"></label>`:''}</div><p class="mute" style="margin:8px 0 0">Cuello: justo bajo la nuez. Cintura: ${mj?'en su punto más estrecho':'a la altura del ombligo'}, sin meter tripa.${mj?' Cadera: en su punto más ancho.':''} Mide dos veces y usa la media.</p><button class="btn" id="bfcalc">Calcular</button>${msg}${res}${H.length?`<ul style="margin-top:12px">${H.map(x=>`<li class="it"><span>${x.d.split('-').reverse().join('/')}</span><b>${d1(x.v)} %</b></li>`).join('')}</ul>`:''}</div>`;
 }
+const dk=o=>{const d=new Date();d.setDate(d.getDate()-o);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+function supHtml(){
+ const su=SU[td()]||{},it=LOG[td()]||[],pr=SUP.find(x=>x.e)||SD[0];
+ const rows=SUP.map(x=>{
+  if(x.e){const c=it.filter(y=>y.s===x.id).length;
+   return `<div class="row" style="padding:6px 0"><span>${esc(x.n)}<br><span class="mute">${x.p} g de proteína · ${x.kcal} kcal por scoop</span></span><span><button class="x" data-sm="${x.id}" aria-label="Quitar un scoop">−</button> <b>${c}</b> <button class="x" data-sp="${x.id}" aria-label="Añadir un scoop">+</button></span></div>`}
+  let n7=0;for(let i=0;i<7;i++)if((SU[dk(i)]||{})[x.id])n7++;
+  return `<div class="row"><label class="chk"><input type="checkbox" data-su="${x.id}" ${su[x.id]?'checked':''}>${esc(x.n)} <span class="mute">${n7}/7 días</span></label>${x.c?`<button class="x" data-sd="${x.id}" aria-label="Eliminar ${esc(x.n)}">×</button>`:''}</div>`}).join('');
+ return `<div class="card"><h2>Suplementos</h2>${rows}<details style="border-top:1px solid var(--line);margin-top:8px"><summary>Editar suplementos</summary><div class="grid" style="margin-top:8px"><label>Proteína por scoop (g)<input id="sp" type="number" inputmode="decimal" value="${pr.p}"></label><label>Calorías por scoop<input id="sk" type="number" inputmode="numeric" value="${pr.kcal}"></label></div><label style="margin-top:8px">Añadir otro suplemento<input id="sn" placeholder="Ej. Magnesio"></label><button class="btn" id="sadd">Añadir suplemento</button><p class="mute" style="margin:8px 0 0">Los scoops de proteína suman a tus calorías y a tu proteína del día. Si cambias los datos del scoop, solo afecta a los que añadas desde ese momento.</p></details></div>`;
+}
+function closeHtml(t,pr){
+ const su=SU[td()]||{},tr=TR[td()]||[],prot=SUP.find(x=>x.e),falta=Math.max(0,Math.round(t.pro-pr));
+ const HT={crea:'a cualquier hora, lo importante es la constancia',omega:'con una comida que tenga algo de grasa',vitd:'con una comida que tenga algo de grasa',multi:'con una comida'};
+ const pend=SUP.filter(x=>!x.e&&!su[x.id]);
+ const sc=prot&&prot.p>0?Math.ceil(falta/prot.p):0;
+ return `<div class="card"><h2>Cierre del día</h2>
+<div class="row" style="padding:3px 0"><span>Entreno</span><b>${tr.length?tr.map(x=>esc(x.t)).join(', '):'Sin apuntar'}</b></div>
+<div class="row" style="padding:3px 0"><span>Proteína</span><b>${falta?'faltan '+falta+' g':'completa'}</b></div>
+${falta&&sc&&sc<=2?`<p class="mute" style="margin:4px 0 0">Con ${sc} scoop${sc>1?'s':''} de ${esc(prot.n.toLowerCase())} llegarías a tu objetivo.</p>`:''}
+<div style="margin-top:10px"><b>Suplementos pendientes</b></div>
+${pend.length?pend.map(x=>`<div style="padding:3px 0">${esc(x.n)}${HT[x.id]?`<br><span class="mute">${HT[x.id]}</span>`:''}</div>`).join(''):'<p class="mute" style="margin:4px 0 0">Todo tomado hoy.</p>'}</div>`;
+}
+function renderTrain(){
+ const a=TR[td()]||[];let f=0;
+ for(let i=0;i<7;i++)if((TR[dk(i)]||[]).some(x=>x.t==='Fuerza'))f++;
+ const H=[];for(let i=1;i<7;i++){const x=TR[dk(i)];if(x&&x.length)H.push(`<li class="it"><span>${dk(i).slice(5).split('-').reverse().join('/')}</span><span class="mute">${x.map(y=>esc(y.t)+(y.m?' '+y.m+' min':'')).join(', ')}</span></li>`)}
+ $('#eb').innerHTML=`<div class="card"><div class="mute">Sesiones de fuerza en los últimos 7 días</div><div class="big num">${f} <span class="mute">de 3–4</span></div><div class="bar"><i style="width:${Math.min(100,f/4*100)}%;background:var(--a)"></i></div><div class="mute">${f>=3?'Objetivo semanal cumplido: así proteges el músculo.':'La fuerza es lo que le dice al cuerpo que conserve el músculo.'}</div></div>
+<div class="card"><h2>Apuntar el entreno de hoy</h2><div class="grid"><label>Tipo<select id="tt">${['Fuerza','Cardio','Caminata','HIIT','Deporte','Otro'].map(x=>`<option>${x}</option>`).join('')}</select></label><label>Duración (min)<input id="tm" type="number" inputmode="numeric" min="0"></label><label style="grid-column:1/-1">Qué hiciste<input id="tn" placeholder="Ej. pierna: sentadilla 4x8, prensa, gemelos"></label></div><button class="btn" id="tadd">Guardar entreno</button>${a.length?`<ul style="margin-top:12px">${a.map((x,i)=>`<li class="it"><span><b>${esc(x.t)}</b>${x.m?' · '+x.m+' min':''}${x.n?`<br><span class="mute">${esc(x.n)}</span>`:''}</span><button class="x" data-ti="${i}" aria-label="Eliminar entreno">×</button></li>`).join('')}</ul>`:''}</div>
+${H.length?`<div class="card"><h2>Días anteriores</h2><ul>${H.join('')}</ul></div>`:''}`;
+}
 
 /* eventos */
 ['sex','age','h','w','goal','bf','act','pace','meals'].forEach(id=>{
@@ -277,7 +313,7 @@ async function estimate(f){
  }catch(e){s.textContent='No se pudo analizar: '+(e.message||'error de conexión')}
  finally{b.disabled=false;const q=$('#ff');if(q)q.value=''}
 }
-$('#tb').addEventListener('click',e=>{if(e.target.id==='foto'){if(!(AM.startsWith('gemini')?GK:AK)){$('#fs').textContent='Primero pega tu clave de API en Ajustes de la foto, más abajo.';const d=$('#tb details');if(d)d.open=true;return}$('#ff').click()}});
+$('#tb').addEventListener('click',e=>{if(e.target.id==='foto'){if(!(AM.startsWith('gemini')?GK:AK)){$('#fs').textContent='Primero pega tu clave de API en Ajustes de la foto, más abajo.';const d=$('#fdet');if(d)d.open=true;return}$('#ff').click()}});
 $('#tb').addEventListener('change',e=>{const t=e.target;if(t.id==='ff'&&t.files[0])estimate(t.files[0]);if(t.id==='gk'){GK=t.value.trim();sv('df-g',GK)}if(t.id==='ak'){AK=t.value.trim();sv('df-k',AK)}if(t.id==='am'){AM=t.value;sv('df-m',AM)}});
 $('#wb').addEventListener('click',e=>{
  const id=e.target.id;
@@ -294,12 +330,33 @@ $('#wb').addEventListener('click',e=>{
   renderBf(l.v,'<div class="mute" style="margin-top:10px">Guardado en tu plan: la proteína ahora se calcula sobre tu masa magra.</div>');
  }
 });
-const TABS=['plan','hoy','peso','guia'];
+$('#tb').addEventListener('click',e=>{
+ const t=e.target,d=t.dataset;
+ if(d.sp){const x=SUP.find(y=>y.id===d.sp);(LOG[td()]=LOG[td()]||[]).push({n:x.n+' (1 scoop)',k:x.kcal,p:x.p,s:x.id});sv('df-l',LOG);renderToday()}
+ else if(d.sm){const a=LOG[td()]||[];for(let i=a.length-1;i>=0;i--)if(a[i].s===d.sm){a.splice(i,1);break}sv('df-l',LOG);renderToday()}
+ else if(d.sd){SUP=SUP.filter(y=>y.id!==d.sd);sv('df-s',SUP);renderToday()}
+ else if(t.id==='sadd'){const n=$('#sn').value.trim();if(!n)return;SUP.push({id:'c'+Date.now(),n,c:1});sv('df-s',SUP);renderToday()}
+});
+$('#tb').addEventListener('change',e=>{
+ const t=e.target;
+ if(t.dataset.su){SU[td()]=Object.assign(SU[td()]||{},{[t.dataset.su]:t.checked});sv('df-su',SU);renderToday()}
+ if(t.id==='sp'||t.id==='sk'){const x=SUP.find(y=>y.e);if(x){x[t.id==='sp'?'p':'kcal']=+t.value||0;sv('df-s',SUP)}}
+});
+$('#eb').addEventListener('click',e=>{
+ const t=e.target;
+ if(t.id==='tadd'){
+  const ty=$('#tt').value,m=Math.round(+$('#tm').value)||0,n=$('#tn').value.trim();
+  (TR[td()]=TR[td()]||[]).push({t:ty,m,n});sv('df-t',TR);
+  if(ty==='Fuerza'){CK[td()]=Object.assign(CK[td()]||{},{fuerza:true});sv('df-c',CK)}
+  renderTrain();
+ }else if(t.dataset.ti){TR[td()].splice(+t.dataset.ti,1);sv('df-t',TR);renderTrain()}
+});
+const TABS=['plan','hoy','entreno','peso','guia'];
 function go(n){
  if(!TABS.includes(n))n='plan';
  $$('section').forEach(s=>s.classList.toggle('on',s.id===n));
  $$('nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.t===n?'page':'false'));
- if(n==='hoy')renderToday();if(n==='peso')renderWeight();
+ if(n==='hoy')renderToday();if(n==='entreno')renderTrain();if(n==='peso')renderWeight();
  window.scrollTo(0,0);
 }
 $$('nav button').forEach(b=>b.addEventListener('click',()=>{location.hash=b.dataset.t}));
