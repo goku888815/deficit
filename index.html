@@ -26,7 +26,7 @@ section{display:none}section.on{display:block}
 .warn{background:var(--warn);color:var(--warnt);border-color:transparent;font-size:14px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 label{display:block;font-size:13px;color:var(--mute)}
-input,select{width:100%;margin-top:3px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+input,select,textarea{width:100%;margin-top:3px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
 :focus-visible{outline:2px solid var(--a);outline-offset:2px}
 .btn{margin-top:12px;width:100%;padding:12px;border:0;border-radius:10px;background:var(--a);color:var(--on);font:700 15px ui-rounded,system-ui,sans-serif;cursor:pointer}
 .big{font-size:46px;font-weight:800;line-height:1.05;letter-spacing:-.03em}
@@ -79,6 +79,14 @@ svg{display:block;max-width:100%}
 <label>Comidas al día<select id="meals"><option>3</option><option>4</option><option>5</option></select></label>
 </div></div>
 <div id="res"></div>
+<div class="card"><h2>Copia de seguridad</h2>
+<p class="mute" style="margin:0 0 8px">Tus datos se guardan en este teléfono. Haz una copia de vez en cuando por si borras la app o cambias de móvil. Ojo: la app del icono y la web abierta en Safari guardan datos por separado. Las claves de API no se incluyen en la copia.</p>
+<button class="btn" id="bk" style="margin-top:0">Guardar copia</button>
+<button class="btn" id="bkc" style="background:var(--p)">Copiar copia al portapapeles</button>
+<label style="margin-top:14px">Restaurar desde un archivo<input id="rf" type="file" accept=".json,application/json,text/plain"></label>
+<label style="margin-top:8px">O pega aquí la copia<textarea id="rt" rows="3"></textarea></label>
+<button class="btn" id="rs" style="background:var(--f)">Restaurar datos</button>
+<div class="mute" id="bm" style="margin-top:8px"></div></div>
 </section>
 
 <section id="hoy"><div id="tb"></div></section>
@@ -351,6 +359,28 @@ $('#eb').addEventListener('click',e=>{
   renderTrain();
  }else if(t.dataset.ti){TR[td()].splice(+t.dataset.ti,1);sv('df-t',TR);renderTrain()}
 });
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+const BK=['df-p','df-l','df-w','df-c','df-bf','df-bm','df-s','df-su','df-t','df-m'];
+const bkData=()=>{const o={app:'deficit',v:1,d:td()};BK.forEach(k=>{const v=st.getItem(k);if(v)o[k]=JSON.parse(v)});return JSON.stringify(o)};
+const bmsg=t=>{$('#bm').textContent=t};
+const bkd=ld('df-bkd','');bmsg(bkd?'Última copia: '+bkd.split('-').reverse().join('/'):'Aún no has hecho ninguna copia.');
+const bkDone=()=>sv('df-bkd',td());
+$('#bk').addEventListener('click',async()=>{
+ const name='deficit-copia-'+td()+'.json',f=new File([bkData()],name,{type:'application/json'});
+ try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Copia de Déficit'});bkDone();bmsg('Copia lista. Guárdala en Archivos o envíatela.');return}}catch(e){if(e.name==='AbortError')return}
+ const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=name;a.click();bkDone();bmsg('Copia descargada.');
+});
+$('#bkc').addEventListener('click',()=>{
+ navigator.clipboard.writeText(bkData()).then(()=>{bkDone();bmsg('Copiada. Pégala en Notas para guardarla.')},()=>bmsg('No se pudo copiar. Usa Guardar copia.'));
+});
+function restore(txt){
+ let o;try{o=JSON.parse(txt);if(o.app!=='deficit')throw 0}catch(e){bmsg('La copia no es válida.');return}
+ if(!confirm('Esto sustituirá los datos actuales de la app. ¿Continuar?'))return;
+ BK.forEach(k=>{if(k in o)st.setItem(k,JSON.stringify(o[k]))});
+ bmsg('Datos restaurados. Recargando…');setTimeout(()=>location.reload(),700);
+}
+$('#rf').addEventListener('change',e=>{const f=e.target.files[0];if(f)f.text().then(restore)});
+$('#rs').addEventListener('click',()=>restore($('#rt').value.trim()));
 const TABS=['plan','hoy','entreno','peso','guia'];
 function go(n){
  if(!TABS.includes(n))n='plan';
